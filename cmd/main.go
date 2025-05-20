@@ -1,8 +1,13 @@
+// Package main is the entry point for the Collab Notes application.
+// It initializes the server, database connection, and sets up routes.
 package main
 
 import (
 	"log"
 	"os"
+
+	"collab-notes/internal/db"
+	"collab-notes/internal/handlers"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -15,18 +20,13 @@ func main() {
 		log.Println("No .env file found, continuing...")
 	}
 
+	// Connect to DB
+	db.Connect()
+
 	app := fiber.New()
 
 	// Auth routes
-	// app.Post("/signup", handlers.SignUp)
-	// app.Post("/login", handlers.Login)
-
-	// // Notes routes (protected)
-	// note := app.Group("/notes", middleware.Protected())
-	// note.Post("/", handlers.CreateNote)
-	// note.Get("/", handlers.GetNotes)
-	// note.Put("/:id", handlers.UpdateNote)
-	// note.Delete("/:id", handlers.DeleteNote)
+	app.Post("/signup", handlers.SignUp)
 
 	port := os.Getenv("PORT")
 	if port == "" {

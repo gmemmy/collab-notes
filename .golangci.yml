@@ -5,7 +5,9 @@ run:
 formatters:
   enable:
     - gofumpt
-    - goimports
+  settings:
+    gofumpt:
+      module-path: collab-notes
 
 linters:
   enable:
@@ -14,3 +16,4 @@ linters:
     - staticcheck
     - unused
     - revive
+    
