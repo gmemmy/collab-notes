@@ -1,6 +1,6 @@
-// Package handlers contains HTTP request handlers for the application's endpoints
+// Package auth contains the handlers for the authentication endpoints
 // TODO: Implement idempotent signup by verifying existing password and returning token if valid
-package handlers
+package auth
 
 import (
 	"database/sql"
@@ -24,8 +24,8 @@ type DBInterface interface {
 	QueryRow(query string, args ...any) *sql.Row
 }
 
-// AuthHandler is a struct that contains the database and JWT interfaces
-type AuthHandler struct {
+// Handler is a struct that contains the database and JWT interfaces
+type Handler struct {
 	db  DBInterface
 	jwt JWTInterface
 }
@@ -49,9 +49,9 @@ func (j *JWTService) SignedString(token *jwt.Token, key []byte) (string, error) 
 	return token.SignedString(key)
 }
 
-// NewAuthHandler creates a new AuthHandler
-func NewAuthHandler(db DBInterface, jwt JWTInterface) *AuthHandler {
-	return &AuthHandler{
+// NewHandler creates a new Handler
+func NewHandler(db DBInterface, jwt JWTInterface) *Handler {
+	return &Handler{
 		db:  db,
 		jwt: jwt,
 	}
@@ -59,7 +59,7 @@ func NewAuthHandler(db DBInterface, jwt JWTInterface) *AuthHandler {
 
 // SignUp handles user registration by creating a new user account
 // and returning a JWT token for authenticated access.
-func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
+func (h *Handler) SignUp(c *fiber.Ctx) error {
 	var payload struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -99,7 +99,7 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 	}
 
 	userID := uuid.New().String()
-	result, err := h.db.Exec(
+	_, err = h.db.Exec(
 		"INSERT INTO users (id, email, password) VALUES (?, ?, ?)",
 		userID, payload.Email, hashedPw,
 	)
@@ -107,15 +107,10 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 		log.Println("Error inserting user:", err)
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
-	
-	id, err := result.LastInsertId()
-	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
 
 	secret := os.Getenv("JWT_SECRET")
 	claims := jwt.MapClaims{
-		"user-id": id,
+		"user-id": userID,
 		"exp":     time.Now().Add(time.Hour * 72).Unix(),
 	}
 	token := h.jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -130,7 +125,7 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 }
 
 // Login handles user authentication and returns a JWT token upon successful login.
-func (h *AuthHandler) Login(c *fiber.Ctx) error {
+func (h *Handler) Login(c *fiber.Ctx) error {
 	var payload struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`

@@ -7,7 +7,9 @@ import (
 	"os"
 
 	"collab-notes/internal/db"
-	"collab-notes/internal/handlers"
+	"collab-notes/internal/handlers/auth"
+	"collab-notes/internal/handlers/notes"
+	"collab-notes/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -23,10 +25,15 @@ func main() {
 
 	app := fiber.New()
 
-	authHandler := handlers.NewAuthHandler(db.DB, &handlers.JWTService{})
+	authHandler := auth.NewHandler(db.DB, &auth.JWTService{})
+	notesHandler := notes.NewHandler(db.DB)
 
 	app.Post("/signup", authHandler.SignUp)
 	app.Post("/login", authHandler.Login)
+
+	note := app.Group("/notes", middleware.Protected())
+	note.Get("/", notesHandler.GetNotes)
+	note.Post("/", notesHandler.CreateNote)
 
 	port := os.Getenv("PORT")
 	if port == "" {
