@@ -14,19 +14,18 @@ import (
 )
 
 func main() {
-	// Load .env variables
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found, continuing...")
 	}
 
-	// Connect to DB
 	db.Connect()
 
 	app := fiber.New()
 
-	// Auth routes
-	app.Post("/signup", handlers.SignUp)
+	authHandler := handlers.NewAuthHandler(db.DB, &handlers.JWTService{})
+
+	app.Post("/signup", authHandler.SignUp)
 
 	port := os.Getenv("PORT")
 	if port == "" {
