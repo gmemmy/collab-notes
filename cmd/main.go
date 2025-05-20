@@ -26,6 +26,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(db.DB, &handlers.JWTService{})
 
 	app.Post("/signup", authHandler.SignUp)
+	app.Post("/login", authHandler.Login)
 
 	port := os.Getenv("PORT")
 	if port == "" {
