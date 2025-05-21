@@ -13,8 +13,8 @@ dropdb: ## Drop and recreate the dev database
 connect: ## Open MySQL CLI session using .env credentials
 	mysql -u $(MYSQL_USER) -p$(MYSQL_PASSWORD) -h $(MYSQL_HOST) -P $(MYSQL_PORT) --protocol=TCP $(MYSQL_DATABASE)
 
-run: ## Run the Go app
-	go run cmd/main.go
+run: ## Run the Go app using Air for hot reloading
+	air
 
 build: ## Build the Go binary
 	go build -o bin/app ./cmd/main.go
