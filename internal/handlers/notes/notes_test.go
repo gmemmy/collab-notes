@@ -62,6 +62,10 @@ func (h *testHelper) setupRoute(method, path string, handler fiber.Handler) {
 		h.app.Get(path, handler)
 	case "POST":
 		h.app.Post(path, handler)
+	case "PUT":
+		h.app.Put(path, handler)
+	case "DELETE":
+		h.app.Delete(path, handler)
 	}
 }
 
@@ -235,6 +239,182 @@ func TestCreateNote(t *testing.T) {
 					t.Fatalf("error decoding response: %v", err)
 				}
 				assert.NotEmpty(t, response["id"])
+			}
+		})
+	}
+
+	if err := helper.mockDB.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %v", err)
+	}
+}
+
+func TestUpdateNote(t *testing.T) {
+	helper := newTestHelper(t)
+	defer helper.cleanup()
+
+	helper.setupRoute("PUT", "/notes/:id", helper.handler.UpdateNote)
+
+	testCases := []struct {
+		name           string
+		noteID         string
+		payload        map[string]string
+		mockError      error
+		expectedStatus int
+		expectedError  string
+		expectQuery    bool
+		rowsAffected   int64
+	}{
+		{
+			name:           "Successful Update",
+			noteID:         "note1",
+			payload:        map[string]string{"title": "Updated Title", "content": "Updated content"},
+			expectedStatus: fiber.StatusNoContent,
+			expectQuery:    true,
+			rowsAffected:   1,
+		},
+		{
+			name:           "Empty Title",
+			noteID:         "note1",
+			payload:        map[string]string{"title": "", "content": "Some content"},
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "Title cannot be empty",
+			expectQuery:    false,
+		},
+		{
+			name:           "Whitespace Title",
+			noteID:         "note1",
+			payload:        map[string]string{"title": "   ", "content": "Some content"},
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "Title cannot be empty",
+			expectQuery:    false,
+		},
+		{
+			name:           "Note Not Found",
+			noteID:         "nonexistent",
+			payload:        map[string]string{"title": "Valid Title", "content": "Some content"},
+			expectedStatus: fiber.StatusNotFound,
+			expectedError:  "Note not found or unauthorized",
+			expectQuery:    true,
+			rowsAffected:   0,
+		},
+		{
+			name:           "Database Error",
+			noteID:         "note1",
+			payload:        map[string]string{"title": "Valid Title", "content": "Some content"},
+			mockError:      errors.New("database error"),
+			expectedStatus: fiber.StatusInternalServerError,
+			expectQuery:    true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			jsonPayload, err := json.Marshal(tc.payload)
+			if err != nil {
+				t.Fatalf("error marshaling payload: %v", err)
+			}
+
+			if tc.expectQuery {
+				query := regexp.QuoteMeta("UPDATE notes SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+				if tc.mockError != nil {
+					helper.mockDB.ExpectExec(query).
+						WithArgs(tc.payload["title"], tc.payload["content"], tc.noteID, "user123").
+						WillReturnError(tc.mockError)
+				} else {
+					helper.mockDB.ExpectExec(query).
+						WithArgs(tc.payload["title"], tc.payload["content"], tc.noteID, "user123").
+						WillReturnResult(sqlmock.NewResult(0, tc.rowsAffected))
+				}
+			}
+
+			req := httptest.NewRequest("PUT", "/notes/"+tc.noteID, bytes.NewBuffer(jsonPayload))
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := helper.app.Test(req)
+			if err != nil {
+				t.Fatalf("error performing request: %v", err)
+			}
+
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			if tc.expectedError != "" {
+				var response map[string]string
+				err = json.NewDecoder(resp.Body).Decode(&response)
+				if err != nil {
+					t.Fatalf("error decoding response: %v", err)
+				}
+				assert.Equal(t, tc.expectedError, response["error"])
+			}
+		})
+	}
+
+	if err := helper.mockDB.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %v", err)
+	}
+}
+
+func TestDeleteNote(t *testing.T) {
+	helper := newTestHelper(t)
+	defer helper.cleanup()
+
+	helper.setupRoute("DELETE", "/notes/:id", helper.handler.DeleteNote)
+
+	testCases := []struct {
+		name           string
+		noteID         string
+		mockError      error
+		expectedStatus int
+		expectedError  string
+		rowsAffected   int64
+	}{
+		{
+			name:           "Successful Deletion",
+			noteID:         "note1",
+			expectedStatus: fiber.StatusNoContent,
+			rowsAffected:   1,
+		},
+		{
+			name:           "Note Not Found",
+			noteID:         "nonexistent",
+			expectedStatus: fiber.StatusNotFound,
+			expectedError:  "Note not found or unauthorized",
+			rowsAffected:   0,
+		},
+		{
+			name:           "Database Error",
+			noteID:         "note1",
+			mockError:      errors.New("database error"),
+			expectedStatus: fiber.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			query := regexp.QuoteMeta("DELETE FROM notes WHERE id = ? AND user_id = ?")
+			if tc.mockError != nil {
+				helper.mockDB.ExpectExec(query).
+					WithArgs(tc.noteID, "user123").
+					WillReturnError(tc.mockError)
+			} else {
+				helper.mockDB.ExpectExec(query).
+					WithArgs(tc.noteID, "user123").
+					WillReturnResult(sqlmock.NewResult(0, tc.rowsAffected))
+			}
+
+			req := httptest.NewRequest("DELETE", "/notes/"+tc.noteID, nil)
+			resp, err := helper.app.Test(req)
+			if err != nil {
+				t.Fatalf("error performing request: %v", err)
+			}
+
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			if tc.expectedError != "" {
+				var response map[string]string
+				err = json.NewDecoder(resp.Body).Decode(&response)
+				if err != nil {
+					t.Fatalf("error decoding response: %v", err)
+				}
+				assert.Equal(t, tc.expectedError, response["error"])
 			}
 		})
 	}

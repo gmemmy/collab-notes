@@ -34,6 +34,8 @@ func main() {
 	note := app.Group("/notes", middleware.Protected())
 	note.Get("/", notesHandler.GetNotes)
 	note.Post("/", notesHandler.CreateNote)
+	note.Put("/:id", notesHandler.UpdateNote)
+	note.Delete("/:id", notesHandler.DeleteNote)
 
 	port := os.Getenv("PORT")
 	if port == "" {

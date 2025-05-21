@@ -96,3 +96,57 @@ func (h *Handler) CreateNote(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id})
 }
+
+// UpdateNote updates an existing note
+func (h *Handler) UpdateNote(c *fiber.Ctx) error {
+	userID := c.Locals("user-id").(string)
+	noteID := c.Params("id")
+
+	var payload struct {
+		Title   string `json:"title"`
+		Content string `json:"content"`
+	}
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request payload"})
+	}
+
+	payload.Title = strings.TrimSpace(payload.Title)
+	payload.Content = strings.TrimSpace(payload.Content)
+
+	if payload.Title == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Title cannot be empty"})
+	}
+
+	result, err := h.db.Exec("UPDATE notes SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
+		payload.Title, payload.Content, noteID, userID)
+	if err != nil {
+		log.Println("Error updating note:", err)
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	affectedRows, _ := result.RowsAffected()
+	if affectedRows == 0 {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Note not found or unauthorized"})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// DeleteNote deletes a note by ID
+func (h *Handler) DeleteNote(c *fiber.Ctx) error {
+	userID := c.Locals("user-id").(string)
+	noteID := c.Params("id")
+
+	result, err := h.db.Exec("DELETE FROM notes WHERE id = ? AND user_id = ?", noteID, userID)
+	if err != nil {
+		log.Println("Error deleting note:", err)
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	affectedRows, _ := result.RowsAffected()
+	if affectedRows == 0 {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Note not found or unauthorized"})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
