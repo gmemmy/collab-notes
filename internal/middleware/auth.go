@@ -14,13 +14,24 @@ import (
 // This middleware should be used on routes that require authentication.
 func Protected() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		authHeader := c.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer") {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing or invalid Authorization header"})
+		var tokenString string
+
+		// Check if it's a WebSocket connection
+		if c.Get("Upgrade") == "websocket" {
+			tokenString = c.Query("token")
+		} else {
+			// Regular HTTP request
+			authHeader := c.Get("Authorization")
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer") {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing or invalid Authorization header"})
+			}
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		
+		if tokenString == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing token"})
+		}
+
 		secret := os.Getenv("JWT_SECRET")
 		tokenString = strings.TrimSpace(tokenString)
 

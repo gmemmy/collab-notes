@@ -145,7 +145,7 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 	var userID string
 	var hashedPw string
 
-	err := h.db.(*sql.DB).QueryRow(
+	err := h.db.QueryRow(
 		"SELECT id, password FROM users WHERE email = ?",
 		payload.Email,
 	).Scan(&userID, &hashedPw)

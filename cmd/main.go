@@ -10,6 +10,7 @@ import (
 	"collab-notes/internal/handlers/auth"
 	"collab-notes/internal/handlers/notes"
 	"collab-notes/internal/middleware"
+	"collab-notes/internal/realtime"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -36,6 +37,10 @@ func main() {
 	note.Post("/", notesHandler.CreateNote)
 	note.Put("/:id", notesHandler.UpdateNote)
 	note.Delete("/:id", notesHandler.DeleteNote)
+
+	// WebSocket routes with authentication
+	ws := app.Group("/ws", middleware.Protected())
+	ws.Get("/notes/:id", realtime.HandleWebSocket)
 
 	port := os.Getenv("PORT")
 	if port == "" {
