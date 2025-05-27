@@ -6,11 +6,11 @@ import (
 	"log"
 	"os"
 
-	"collab-notes/internal/db"
-	"collab-notes/internal/handlers/auth"
-	"collab-notes/internal/handlers/notes"
-	"collab-notes/internal/middleware"
-	"collab-notes/internal/realtime"
+	"quanta/internal/db"
+	"quanta/internal/handlers/auth"
+	"quanta/internal/handlers/notes"
+	"quanta/internal/middleware"
+	"quanta/internal/realtime"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"

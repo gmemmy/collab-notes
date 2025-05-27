@@ -1,4 +1,4 @@
-module collab-notes
+module quanta
 
 go 1.24.3
 

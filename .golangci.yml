@@ -7,7 +7,7 @@ formatters:
     - gofumpt
   settings:
     gofumpt:
-      module-path: collab-notes
+      module-path: quanta
 
 linters:
   enable:
