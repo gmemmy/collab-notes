@@ -3,6 +3,7 @@
 package realtime
 
 import (
+	"encoding/json"
 	"log"
 	"sync"
 
@@ -21,6 +22,12 @@ type WebSocketConn interface {
 type RoomManager struct {
 	mu    sync.RWMutex
 	rooms map[string]map[WebSocketConn]bool
+}
+
+// IncomingMessage represents a message from a client
+type IncomingMessage struct {
+	Type    string `json:"type"`
+	Content string `json:"content"`
 }
 
 // NewRoomManager creates a new RoomManager instance
@@ -99,7 +106,9 @@ func HandleWebSocket(c *fiber.Ctx) error {
 			return
 		}
 
-		if _, ok := c.Locals("user-id").(string); !ok {
+		userIDInterface := c.Locals("user-id")
+		userID, ok := userIDInterface.(string)
+		if !ok {
 			if err := c.WriteJSON(fiber.Map{
 				"error": "User ID not found in context",
 			}); err != nil {
@@ -122,8 +131,30 @@ func HandleWebSocket(c *fiber.Ctx) error {
 				break
 			}
 
+			var m IncomingMessage
+			if err := json.Unmarshal(message, &m); err != nil {
+				log.Printf("Error unmarshalling message: %v", err)
+				continue
+			}
+
+			if m.Type == "" || m.Content == "" {
+				log.Printf("Invalid message received: missing type or content")
+				continue
+			}
+
+			outgoing := map[string]string{
+				"type":    m.Type,
+				"content": m.Content,
+				"user-id": userID,
+			}
+			outgoingJSON, err := json.Marshal(outgoing)
+			if err != nil {
+				log.Printf("Error marshalling outgoing message: %v", err)
+				continue
+			}
+
 			// Broadcast message to all users in the room
-			manager.BroadcastToRoom(noteID, c, mt, message)
+			manager.BroadcastToRoom(noteID, c, mt, outgoingJSON)
 		}
 	})(c)
 }
