@@ -18,16 +18,23 @@ type WebSocketConn interface {
 	Close() error
 }
 
-// RoomManager handles WebSocket room management with thread safety
-type RoomManager struct {
-	mu    sync.RWMutex
-	rooms map[string]map[WebSocketConn]bool
+// PresenceMessage represents a presence update message (join/leave)
+type PresenceMessage struct {
+	Type   string `json:"type"`
+	Action string `json:"action"`
+	UserID string `json:"user-id"`
 }
 
 // IncomingMessage represents a message from a client
 type IncomingMessage struct {
 	Type    string `json:"type"`
 	Content string `json:"content"`
+}
+
+// RoomManager handles WebSocket room management with thread safety
+type RoomManager struct {
+	mu    sync.RWMutex
+	rooms map[string]map[WebSocketConn]bool
 }
 
 // NewRoomManager creates a new RoomManager instance
@@ -117,12 +124,25 @@ func HandleWebSocket(c *fiber.Ctx) error {
 			return
 		}
 
+		joinPayload, _ := json.Marshal(PresenceMessage{
+			Type:   "presence",
+			Action: "join",
+			UserID: userID,
+		})
 		manager.JoinRoom(noteID, c)
+		manager.BroadcastToRoom(noteID, c, websocket.TextMessage, joinPayload)
 		log.Println("User joined note room:", noteID)
 
 		// Ensure user is removed from room when connection closes
 		defer func() {
+			leavePayload, _ := json.Marshal(PresenceMessage{
+				Type:   "presence",
+				Action: "leave",
+				UserID: userID,
+			})
 			manager.LeaveRoom(noteID, c)
+			manager.BroadcastToRoom(noteID, c, websocket.TextMessage, leavePayload)
+			log.Println("User left note room:", noteID)
 		}()
 
 		for {

@@ -1,4 +1,4 @@
-// Package main is the entry point for the Collab Notes application.
+// Package main is the entry point for the quanta application.
 // It initializes the server, database connection, and sets up routes.
 package main
 
