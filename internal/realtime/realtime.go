@@ -11,6 +11,28 @@ import (
 	"github.com/gofiber/websocket/v2"
 )
 
+// MessageType represents the type of message being sent
+type MessageType string
+
+const (
+	// MessageTypeEdit represents an edit operation
+	MessageTypeEdit MessageType = "edit"
+	// MessageTypeTyping represents a typing status update
+	MessageTypeTyping MessageType = "typing"
+	// MessageTypeCursor represents a cursor position update
+	MessageTypeCursor MessageType = "cursor"
+)
+
+// PresenceAction represents the type of presence action
+type PresenceAction string
+
+const (
+	// PresenceActionJoin represents a user joining a room
+	PresenceActionJoin PresenceAction = "join"
+	// PresenceActionLeave represents a user leaving a room
+	PresenceActionLeave PresenceAction = "leave"
+)
+
 // WebSocketConn defines the interface for WebSocket connections
 type WebSocketConn interface {
 	WriteMessage(messageType int, message []byte) error
@@ -20,15 +42,15 @@ type WebSocketConn interface {
 
 // PresenceMessage represents a presence update message (join/leave)
 type PresenceMessage struct {
-	Type   string `json:"type"`
-	Action string `json:"action"`
-	UserID string `json:"user-id"`
+	Type   MessageType    `json:"type"`
+	Action PresenceAction `json:"action"`
+	UserID string         `json:"user-id"`
 }
 
 // IncomingMessage represents a message from a client
 type IncomingMessage struct {
-	Type    string `json:"type"`
-	Content string `json:"content"`
+	Type    MessageType `json:"type"`
+	Content string      `json:"content"`
 }
 
 // RoomManager handles WebSocket room management with thread safety
@@ -126,7 +148,7 @@ func HandleWebSocket(c *fiber.Ctx) error {
 
 		joinPayload, _ := json.Marshal(PresenceMessage{
 			Type:   "presence",
-			Action: "join",
+			Action: PresenceActionJoin,
 			UserID: userID,
 		})
 		manager.JoinRoom(noteID, c)
@@ -137,7 +159,7 @@ func HandleWebSocket(c *fiber.Ctx) error {
 		defer func() {
 			leavePayload, _ := json.Marshal(PresenceMessage{
 				Type:   "presence",
-				Action: "leave",
+				Action: PresenceActionLeave,
 				UserID: userID,
 			})
 			manager.LeaveRoom(noteID, c)
@@ -151,30 +173,35 @@ func HandleWebSocket(c *fiber.Ctx) error {
 				break
 			}
 
-			var m IncomingMessage
-			if err := json.Unmarshal(message, &m); err != nil {
-				log.Printf("Error unmarshalling message: %v", err)
+			var incoming IncomingMessage
+			if err := json.Unmarshal(message, &incoming); err != nil {
+				log.Printf("Invalid message JSON: %v", err)
 				continue
 			}
 
-			if m.Type == "" || m.Content == "" {
+			if incoming.Type == "" || incoming.Content == "" {
 				log.Printf("Invalid message received: missing type or content")
 				continue
 			}
 
-			outgoing := map[string]string{
-				"type":    m.Type,
-				"content": m.Content,
-				"user-id": userID,
-			}
-			outgoingJSON, err := json.Marshal(outgoing)
-			if err != nil {
-				log.Printf("Error marshalling outgoing message: %v", err)
+			// Validate message type
+			switch incoming.Type {
+			case MessageTypeEdit, MessageTypeTyping, MessageTypeCursor:
+			default:
+				log.Printf("Invalid message type: %s", incoming.Type)
 				continue
 			}
 
-			// Broadcast message to all users in the room
-			manager.BroadcastToRoom(noteID, c, mt, outgoingJSON)
+			outgoing := map[string]interface{}{
+				"type":    incoming.Type,
+				"content": incoming.Content,
+				"user-id": userID,
+			}
+			rebroadcast, err := json.Marshal(outgoing)
+			if err != nil {
+				log.Printf("Error marshalling outgoing message: %v", err)
+			}
+			manager.BroadcastToRoom(noteID, c, mt, rebroadcast)
 		}
 	})(c)
 }

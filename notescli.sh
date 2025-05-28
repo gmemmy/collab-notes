@@ -5,14 +5,14 @@
 NOTE_ID=$1
 JWT=$2
 TYPE=$3
-CONTENT=$4
+PAYLOAD=$4
 
-echo "DEBUG: NOTE_ID=$NOTE_ID"
-echo "DEBUG: TYPE=$TYPE"
-echo "DEBUG: CONTENT=$CONTENT"
 if [[ -z "$NOTE_ID" || -z "$JWT" || -z "$TYPE" ]]; then
-  echo "Usage: $0 <note_id> <jwt> <type> <content | random>"
-  echo "Types: edit, cursor, presence"
+  echo "Usage: $0 <note_id> <jwt> <type> <payload>"
+  echo "Examples:"
+  echo "  ./notescli.sh <note_id> <jwt> edit 'Hello world!'"
+  echo "  ./notescli.sh <note_id> <jwt> typing '{\"is_typing\":true}'"
+  echo "  ./notescli.sh <note_id> <jwt> cursor '{\"position\":128}'"
   exit 1
 fi
 
