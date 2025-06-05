@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: oklch(100% 0 0);
+  --color-foreground: oklch(27.84% 0.03 286.62);
+  --color-card: oklch(100% 0 0);
+  --color-card-foreground: oklch(27.84% 0.03 286.62);
+  --color-popover: oklch(100% 0 0);
+  --color-popover-foreground: oklch(27.84% 0.03 286.62);
+  --color-primary: oklch(35.25% 0.05 286.62);
+  --color-primary-foreground: oklch(98.04% 0.00 286.62);
+  --color-secondary: oklch(96.08% 0.00 286.62);
+  --color-secondary-foreground: oklch(35.25% 0.05 286.62);
+  --color-muted: oklch(96.08% 0.00 286.62);
+  --color-muted-foreground: oklch(58.83% 0.01 286.62);
+  --color-accent: oklch(96.08% 0.00 286.62);
+  --color-accent-foreground: oklch(35.25% 0.05 286.62);
+  --color-destructive: oklch(62.80% 0.25 29.23);
+  --color-destructive-foreground: oklch(98.04% 0.00 286.62);
+  --color-border: oklch(91.37% 0.01 286.62);
+  --color-input: oklch(91.37% 0.01 286.62);
+  --color-ring: oklch(27.84% 0.03 286.62);
+  --radius: 0.5rem;
+  
+  --color-chart-1: oklch(60.82% 0.12 29.23);
+  --color-chart-2: oklch(60.04% 0.16 194.77);
+  --color-chart-3: oklch(48.24% 0.08 194.77);
+  --color-chart-4: oklch(68.24% 0.17 60.75);
+  --color-chart-5: oklch(70.20% 0.20 29.23);
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: oklch(27.84% 0.03 286.62);
+    --color-foreground: oklch(98.04% 0.00 286.62);
+    --color-card: oklch(27.84% 0.03 286.62);
+    --color-card-foreground: oklch(98.04% 0.00 286.62);
+    --color-popover: oklch(27.84% 0.03 286.62);
+    --color-popover-foreground: oklch(98.04% 0.00 286.62);
+    --color-primary: oklch(98.04% 0.00 286.62);
+    --color-primary-foreground: oklch(35.25% 0.05 286.62);
+    --color-secondary: oklch(42.95% 0.01 286.62);
+    --color-secondary-foreground: oklch(98.04% 0.00 286.62);
+    --color-muted: oklch(42.95% 0.01 286.62);
+    --color-muted-foreground: oklch(73.33% 0.01 286.62);
+    --color-accent: oklch(42.95% 0.01 286.62);
+    --color-accent-foreground: oklch(98.04% 0.00 286.62);
+    --color-destructive: oklch(45.88% 0.18 29.23);
+    --color-destructive-foreground: oklch(98.04% 0.00 286.62);
+    --color-border: oklch(42.95% 0.01 286.62);
+    --color-input: oklch(42.95% 0.01 286.62);
+    --color-ring: oklch(89.80% 0.00 286.62);
+    
+    --color-chart-1: oklch(70.59% 0.14 286.62);
+    --color-chart-2: oklch(69.41% 0.12 194.77);
+    --color-chart-3: oklch(78.43% 0.13 60.75);
+    --color-chart-4: oklch(78.43% 0.13 286.62);
+    --color-chart-5: oklch(80.39% 0.15 29.23);
+  }
+}
+
+
+
